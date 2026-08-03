@@ -7264,6 +7264,13 @@ LPVOID lpReserved ) // Reserved
 x86_64-w64-mingw32-gcc customdll.cpp --shared -o customdll.dll
 ```
 
+Copy the `.dll` file to the desired path.
+
+```cmd
+Restart-Service <SERVICE>
+Get-LocalGroupMember administrators
+```
+
 ###### Example 2
 
 ```cpp
@@ -7327,13 +7334,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 ```shell
 x86_64-w64-mingw32-gcc -shared -o customdll.dll customdll.cpp -lws2_32
 i686-w64-mingw32-gcc -shared -o customdll.dll customdll.cpp -lws2_32
-```
-
-Copy the `.dll` file to the desired path.
-
-```cmd
-Restart-Service <SERVICE>
-Get-LocalGroupMember administrators
 ```
 
 ##### Leveraging Windows Services
